@@ -43,41 +43,41 @@ jobs:
           git clone --depth 1 https://github.com/hanwckf/immortalwrt-mt798x.git
           cd immortalwrt-mt798x
 
-      - name: 添加 feeds (iStore + PassWall + MTK SDK)
+      - name: 添加 feeds (iStore + PassWall)
         working-directory: immortalwrt-mt798x
         run: |
           # iStore 应用商店
           echo 'src-git istore https://github.com/linkease/istore;main' >> feeds.conf.default
 
-          # PassWall 及依赖 (kenzok8 源)
+          # PassWall (kenzok8 源)
           echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages' >> feeds.conf.default
           echo 'src-git small https://github.com/kenzok8/small' >> feeds.conf.default
 
-      - name: 更新 & 安装 feeds (MTK SDK 会提供 MT7988 支持)
+      - name: 更新 & 安装 feeds
         working-directory: immortalwrt-mt798x
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 生成 .config (MT7988 + BPI-R4 + SD卡)
+      - name: 生成 .config (MT7988 + BPI-R4)
         working-directory: immortalwrt-mt798x
         run: |
-          # 先生成最小配置 — 只设目标
+          # 最小目标配置
           cat > .config << 'TARGET_EOF'
-          CONFIG_TARGET_mediatek=y
-          CONFIG_TARGET_mediatek_mt7988=y
-          CONFIG_TARGET_mediatek_mt7988_DEVICE_bananapi_bpi-r4=y
-          CONFIG_CCACHE=y
-          TARGET_EOF
+CONFIG_TARGET_mediatek=y
+CONFIG_TARGET_mediatek_mt7988=y
+CONFIG_TARGET_mediatek_mt7988_DEVICE_bananapi_bpi-r4=y
+CONFIG_CCACHE=y
+CONFIG_BUILD_LOG=y
+TARGET_EOF
 
-          # 根据启动介质选择 SD/EMMC 子配置
           if [ "${{ inputs.boot_media }}" = "sd" ]; then
             echo 'CONFIG_TARGET_mediatek_mt7988_DEVICE_bananapi_bpi-r4_SD=y' >> .config
           else
             echo 'CONFIG_TARGET_mediatek_mt7988_DEVICE_bananapi_bpi-r4_EMMC=y' >> .config
           fi
 
-          # 展开所有默认依赖
+          # 第一次展开
           make defconfig
 
       - name: 启用 WiFi 7 BE14 驱动 (MT7995)
@@ -85,53 +85,53 @@ jobs:
         working-directory: immortalwrt-mt798x
         run: |
           cat >> .config << 'WIFI_EOF'
-          CONFIG_PACKAGE_mt_wifi=y
-          CONFIG_PACKAGE_hostapd-mtk=y
-          CONFIG_PACKAGE_wifi-profile=y
-          CONFIG_PACKAGE_kmod-mhi-pci-generic=y
-          WIFI_EOF
+CONFIG_PACKAGE_mt_wifi=y
+CONFIG_PACKAGE_hostapd-mtk=y
+CONFIG_PACKAGE_wifi-profile=y
+CONFIG_PACKAGE_kmod-mhi-pci-generic=y
+WIFI_EOF
 
       - name: 启用 iStore 应用商店
         if: ${{ inputs.include_istore }}
         working-directory: immortalwrt-mt798x
         run: |
           cat >> .config << 'ISTORE_EOF'
-          CONFIG_PACKAGE_luci-app-store=y
-          CONFIG_PACKAGE_luci-app-quickstart=y
-          CONFIG_PACKAGE_luci-theme-argon=y
-          CONFIG_PACKAGE_luci-app-argon-config=y
-          CONFIG_PACKAGE_luci-app-diskman=y
-          ISTORE_EOF
+CONFIG_PACKAGE_luci-app-store=y
+CONFIG_PACKAGE_luci-app-quickstart=y
+CONFIG_PACKAGE_luci-theme-argon=y
+CONFIG_PACKAGE_luci-app-argon-config=y
+CONFIG_PACKAGE_luci-app-diskman=y
+ISTORE_EOF
 
-      - name: 启用 PassWall
+      - name: 启用 PassWall (v1, 兼容 kernel 5.4)
         if: ${{ inputs.include_passwall }}
         working-directory: immortalwrt-mt798x
         run: |
           cat >> .config << 'PW_EOF'
-          CONFIG_PACKAGE_luci-app-passwall=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Sing-box=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Hysteria=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_NaiveProxy=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO=y
-          CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_Plus=y
-          PW_EOF
+CONFIG_PACKAGE_luci-app-passwall=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Sing-box=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Hysteria=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_NaiveProxy=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_Plus=y
+PW_EOF
 
-      - name: 广义推荐包
+      - name: 通用推荐包
         working-directory: immortalwrt-mt798x
         run: |
           cat >> .config << 'EXTRA_EOF'
-          CONFIG_PACKAGE_luci-app-dockerman=y
-          CONFIG_PACKAGE_docker=y
-          CONFIG_PACKAGE_mwan3=y
-          CONFIG_PACKAGE_kmod-usb3=y
-          CONFIG_PACKAGE_block-mount=y
-          CONFIG_PACKAGE_fstrim=y
-          CONFIG_PACKAGE_luci-app-ddns-go=y
-          CONFIG_PACKAGE_luci-app-upnp=y
-          CONFIG_PACKAGE_luci-app-ttyd=y
-          CONFIG_PACKAGE_luci-app-filebrowser=y
-          EXTRA_EOF
+CONFIG_PACKAGE_luci-app-dockerman=y
+CONFIG_PACKAGE_docker=y
+CONFIG_PACKAGE_mwan3=y
+CONFIG_PACKAGE_kmod-usb3=y
+CONFIG_PACKAGE_block-mount=y
+CONFIG_PACKAGE_fstrim=y
+CONFIG_PACKAGE_luci-app-ddns-go=y
+CONFIG_PACKAGE_luci-app-upnp=y
+CONFIG_PACKAGE_luci-app-ttyd=y
+CONFIG_PACKAGE_luci-app-filebrowser=y
+EXTRA_EOF
 
       - name: 展开所有依赖
         working-directory: immortalwrt-mt798x
@@ -143,10 +143,7 @@ jobs:
 
       - name: 编译固件
         working-directory: immortalwrt-mt798x
-        run: |
-          # 如果编译出错，查看 .config 中目标是否正确
-          grep -E 'CONFIG_TARGET_(mediatek|mt7988|bananapi)' .config || true
-          make -j$(nproc) V=s
+        run: make -j$(nproc) V=s
 
       - name: 整理产物
         run: |
@@ -172,6 +169,6 @@ jobs:
           echo "  目标: BPI-R4 Pro 8X (MT7988A)"
           echo "  启动方式: ${{ inputs.boot_media }} 卡"
           echo "  WiFi 7 BE14: ${{ inputs.include_wifi }}"
-          echo "  PassWall:    ${{ inputs.include_passwall }}"
+          echo "  PassWall v1: ${{ inputs.include_passwall }}"
           echo "  iStore:      ${{ inputs.include_istore }}"
           echo "============================================"
